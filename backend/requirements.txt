@@ -1,0 +1,23 @@
+# Core
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+pydantic==2.9.0
+pydantic-settings==2.5.2
+pydantic[email]==2.9.0
+
+# Database
+sqlalchemy==2.0.35
+
+# Auth
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+
+# Data scraping
+requests==2.32.3
+beautifulsoup4==4.12.3
+lxml==5.3.0
+# Optional: soccerdata wraps FBRef with rate-limiting and caching
+# soccerdata==1.7.0
+
+# Dev
+python-dotenv==1.0.1

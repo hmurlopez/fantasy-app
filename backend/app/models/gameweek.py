@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Boolean, Enum
+from sqlalchemy import Column, Integer, Float, String, ForeignKey, DateTime, Boolean, Enum
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import enum
@@ -39,7 +39,7 @@ class Pick(Base):
     is_captain = Column(Boolean, default=False)
     is_vice_captain = Column(Boolean, default=False)
     # Points earned by this pick this gameweek
-    points_earned = Column(Integer, default=0)
+    points_earned = Column(Float, default=0.0)
 
     team = relationship("Team", back_populates="picks")
     gameweek = relationship("Gameweek", back_populates="picks")

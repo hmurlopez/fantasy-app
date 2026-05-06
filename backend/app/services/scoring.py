@@ -1,7 +1,7 @@
 """
 Fantasy Soccer Scoring Engine
 ==============================
-Points are calculated from raw FBRef stats stored in PlayerStats.
+Points are calculated from raw stats stored in PlayerStats.
 Adjust the SCORING_RULES dict to customise your league's point system.
 """
 
@@ -17,7 +17,7 @@ SCORING_RULES = {
     "minutes_60_plus": 2,
 
     # Goals (by position)
-    "goal_gk": 10,
+    "goal_gk": 6,
     "goal_def": 6,
     "goal_mid": 5,
     "goal_fwd": 4,
@@ -25,34 +25,68 @@ SCORING_RULES = {
     # Assists (all positions)
     "assist": 3,
 
-    # Clean sheets (full match, by position)
-    "clean_sheet_gk": 6,
-    "clean_sheet_def": 4,
-    "clean_sheet_mid": 1,
-    "clean_sheet_fwd": 0,
+    # Big chances created (all positions): 1 pt each
+    "big_chance_created": 1,
 
-    # Goals conceded (GK + DEF only): -1 per every 2 goals let in
-    "goals_conceded_per_2_gk": -1,
-    "goals_conceded_per_2_def": -1,
+    # Balls into the box (all positions): 0.5 pts each
+    "ball_into_box": 0.5,
 
-    # GK-specific
-    "saves_per_3": 1,        # +1 for every 3 saves
-    "penalty_save": 5,
+    # Penalties won (all positions): 2 pts each
+    "penalty_won": 2,
 
-    # Negative events (all positions)
-    "yellow_card": -1,
-    "red_card": -3,
-    "own_goal": -2,
+    # Penalties committed (all positions): -2 pts each
+    "penalty_committed": -2,
+
+    # Penalties saved (all positions): 3 pts each
+    "penalty_save": 3,
+
+    # Saves (all positions): 0.5 pts each
+    "save": 0.5,
+
+    # Effective clearances (all positions): 0.5 pts each
+    "effective_clearance": 0.5,
+
+    # Penalties missed (all positions): -2 pts each
     "penalty_miss": -2,
+
+    # Own goals (all positions): -2 pts each
+    "own_goal": -2,
+
+    # Goals against tiers indexed by goals_conceded count.
+    # The last entry covers that value and all higher values.
+    # GK/DEF: clean sheet=+3, 1 conceded=0, 2+=−1
+    "goals_against_gk":  [3, 0, -1],
+    "goals_against_def": [3, 0, -1],
+    # MID: clean sheet=+2, 1=0, 2=−1, 3=−1, 4+=−2
+    "goals_against_mid": [2, 0, -1, -1, -2],
+    # FWD: clean sheet=+1, 1=0, 2=−1, 3=−1, 4+=−2
+    "goals_against_fwd": [1, 0, -1, -1, -2],
+
+    # Cards
+    "yellow_card": -1,
+    "second_yellow_card": -2,
+    "red_card": -2,
+
+    # Goal attempts (all positions): 0.5 pts each
+    "goal_attempt": 0.5,
+
+    # Effective dribbles (all positions): 0.5 pts each
+    "effective_dribble": 0.5,
+
+    # Recoveries (all positions): 0.2 pts each
+    "recovery": 0.2,
+
+    # Lost balls (all positions): -0.1 pts each
+    "lost_ball": -0.1,
 
     # Transfer deduction (applied separately at GW level)
     "extra_transfer": -4,
 }
 
 
-def calculate_points(stats: PlayerStats, position: str) -> int:
+def calculate_points(stats: PlayerStats, position: str) -> float:
     """Return fantasy points for one player's stats in a single gameweek."""
-    pts = 0
+    pts = 0.0
     pos = position.upper()
 
     # Minutes played
@@ -61,7 +95,7 @@ def calculate_points(stats: PlayerStats, position: str) -> int:
     elif stats.minutes_played >= 1:
         pts += SCORING_RULES["minutes_1_to_59"]
     else:
-        return 0  # Didn't play — no points
+        return 0.0  # Didn't play — no points
 
     # Goals
     goal_key = f"goal_{pos.lower()}"
@@ -70,29 +104,58 @@ def calculate_points(stats: PlayerStats, position: str) -> int:
     # Assists
     pts += stats.assists * SCORING_RULES["assist"]
 
-    # Clean sheet (only awarded if player played 60+ minutes)
-    if stats.clean_sheet and stats.minutes_played >= 60:
-        cs_key = f"clean_sheet_{pos.lower()}"
-        pts += SCORING_RULES.get(cs_key, 0)
+    # Big chances created
+    pts += stats.big_chances_created * SCORING_RULES["big_chance_created"]
 
-    # Goals conceded penalty (GK and DEF only)
-    if pos in ("GK", "DEF"):
-        conceded_key = f"goals_conceded_per_2_{pos.lower()}"
-        pts += (stats.goals_conceded // 2) * SCORING_RULES.get(conceded_key, 0)
+    # Balls into the box
+    pts += stats.balls_into_box * SCORING_RULES["ball_into_box"]
 
-    # GK saves bonus
-    if pos == "GK":
-        pts += (stats.saves // 3) * SCORING_RULES["saves_per_3"]
-        pts += stats.penalties_saved * SCORING_RULES["penalty_save"]
+    # Penalties won
+    pts += stats.penalties_won * SCORING_RULES["penalty_won"]
 
-    # Negative events
-    pts += stats.yellow_cards * SCORING_RULES["yellow_card"]
-    pts += stats.red_cards * SCORING_RULES["red_card"]
-    pts += stats.own_goals * SCORING_RULES["own_goal"]
+    # Penalties committed
+    pts += stats.penalties_committed * SCORING_RULES["penalty_committed"]
+
+    # Penalties saved
+    pts += stats.penalties_saved * SCORING_RULES["penalty_save"]
+
+    # Saves
+    pts += stats.saves * SCORING_RULES["save"]
+
+    # Effective clearances
+    pts += stats.effective_clearances * SCORING_RULES["effective_clearance"]
+
+    # Penalties missed
     pts += stats.penalties_missed * SCORING_RULES["penalty_miss"]
+
+    # Own goals
+    pts += stats.own_goals * SCORING_RULES["own_goal"]
+
+    # Goals against (tiered): last tier covers all higher counts
+    ga_key = f"goals_against_{pos.lower()}"
+    ga_tiers = SCORING_RULES.get(ga_key, SCORING_RULES["goals_against_fwd"])
+    tier_idx = min(stats.goals_conceded, len(ga_tiers) - 1)
+    pts += ga_tiers[tier_idx]
+
+    # Cards
+    pts += stats.yellow_cards * SCORING_RULES["yellow_card"]
+    pts += stats.second_yellow_cards * SCORING_RULES["second_yellow_card"]
+    pts += stats.red_cards * SCORING_RULES["red_card"]
+
+    # Goal attempts
+    pts += stats.goal_attempts * SCORING_RULES["goal_attempt"]
+
+    # Effective dribbles
+    pts += stats.effective_dribbles * SCORING_RULES["effective_dribble"]
+
+    # Recoveries
+    pts += stats.recoveries * SCORING_RULES["recovery"]
+
+    # Lost balls
+    pts += stats.lost_balls * SCORING_RULES["lost_ball"]
 
     return pts
 
 
-def apply_captain_multiplier(pts: int, is_captain: bool) -> int:
+def apply_captain_multiplier(pts: float, is_captain: bool) -> float:
     return pts * 2 if is_captain else pts

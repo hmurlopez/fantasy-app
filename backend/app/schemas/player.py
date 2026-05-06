@@ -28,8 +28,18 @@ class PlayerStatsOut(BaseModel):
     penalties_saved: int
     penalties_missed: int
     yellow_cards: int
+    second_yellow_cards: int
     red_cards: int
     own_goals: int
-    fantasy_points: int
+    big_chances_created: int
+    balls_into_box: int
+    penalties_won: int
+    penalties_committed: int
+    effective_clearances: int
+    goal_attempts: int
+    effective_dribbles: int
+    recoveries: int
+    lost_balls: int
+    fantasy_points: float
 
     model_config = {"from_attributes": True}
